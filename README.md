@@ -51,6 +51,15 @@ O aplicativo deverá:
 > - Você poderá tirar suas dúvidas no [Slack do Desafio][3]
 > - Ao finalizar o seu projeto, publique-o no Github e envie o link para bugginhodeveloper@gmail.com
 
+----------
+
+Quem já enviou?
+--------
+
+Confira abaixo uma lista com todos os amiguinhos que já concluíram o desafio:
+
+- Hugo Peres (https://github.com/hugueds/mini-projeto-4-python)
+
 [1]: https://www.python.org/
 [2]: https://www.python.org/doc/
 [3]: https://bugginhominiprojetos.slack.com/
