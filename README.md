@@ -60,6 +60,7 @@ Confira abaixo uma lista com todos os amiguinhos que já concluíram o desafio:
 
 - Hugo Peres (https://github.com/hugueds/mini-projeto-4-python)
 - Jorgel Luiz (https://github.com/theFullStacker/Sistema-Bancario-python)
+- Marcell Guilherme (https://github.com/Mazuh/BugginhoDeveloper-Mini-Projects/tree/master/project_4_python)
 
 [1]: https://www.python.org/
 [2]: https://www.python.org/doc/
