@@ -8,11 +8,12 @@ modulo
 As classes desse modulo sao:
     -- User
     -- Account
-    -- History
     -- Money
 """
 
 import decimal as dec
+from copy import deepcopy
+import sys
 
 class User:
     """
@@ -72,7 +73,6 @@ class Account:
             self.acct = Account.accountId
             self.user = user
             self.balance = Money(balance)
-            self.history = []
             Account.accountId += 1
 
     def __str__(self): pass
@@ -108,6 +108,7 @@ class Money:
     """
 
     banknotes = (2, 5, 10, 20, 50, 100)
+    qntoptions = 3
 
     def __init__(self, value):
         self.value = dec.Decimal(value).quantize(dec.Decimal('.01'), rounding=dec.ROUND_UP)
@@ -148,10 +149,70 @@ class Money:
         result = ''
         while digits:
             digits, last = digits[:-3], digits[-3:]
-            result += (last + ',' + result) if result else last
+            result = (last + ',' + result) if result else last
         return result
 
-    def getOptions(self): pass
+    def getOptions(self):
+        """
+            Obtem as opcoes de cedulas para o valor sacado.
+
+            A quantidade de opcoes e dada de acordo com o valor de Money.qntoptions
+
+        :return: result -> Lista de strings com as opcoes disponiveis
+        """
+        result = []
+        cnt = 0
+        size = len(self.banknotes) - 1
+        for idx, bknote in enumerate(reversed(self.banknotes)):
+            if cnt == Money.qntoptions: break
+            if dec.Decimal(bknote) <= self.value:
+                notes = self.separate(size-idx)
+                text = str(cnt+1) + '. '
+                for key in notes:
+                    text += str(notes[key]) + (' cedulas de ' if notes[key] != 1 else ' cedula de ') + str(key) + ' / '
+                result.append(text)
+                cnt += 1
+        return result
+
+
+    def separate(self, pos):
+        assert self.value >= 1, 'Nao e possivel fazer saque para valores menores ou igual a 0'
+        assert self.value == self.value.to_integral_value(), 'Nao e possivel dar opcoes de cedulas para o valor ' + str(self.value) + '. So e possivel dar opcoes para valores inteiros.'
+        result = {}
+        temp = deepcopy(self.value)     # Nao tenho certeza se essa e a melhor forma de evitar alteracoes no objeto original
+        while temp != 0:
+            bknote = self.banknotes[pos]
+            qnt = temp // dec.Decimal(bknote)
+            temp -= qnt * dec.Decimal(bknote)
+            if qnt != 0: result[bknote] = int(qnt)
+            pos -= 1
+        return result
 
 if __name__ == '__main__':
-    pass
+
+    def testSeparate(value):
+        try:
+            print('Testando valor: ' + str(value))
+            print(value.separate(4), end='. ')
+        except AssertionError:
+            print(sys.exc_info()[1])
+        else:
+            print('Tudo certo...')
+
+    print('testando separate...')
+    for value in (99, 999, 3.14, -10):
+        testSeparate(Money(value))
+    print()
+
+    print('Testando iteracao nas cedulas invertidas invertido...')
+    print(list((idx, value) for idx, value in enumerate(reversed(Money.banknotes))))
+    size = len(Money.banknotes)-1
+    print(list((size-idx, value) for idx, value in enumerate(reversed(Money.banknotes))))
+    print()
+
+    print('Testando getOptions...')
+    value = Money(1000)
+    print('Valor testado: ' + str(value))
+    options = value.getOptions()
+    for text in options:
+        print(text)
