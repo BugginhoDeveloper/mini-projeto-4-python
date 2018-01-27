@@ -13,7 +13,6 @@ As classes desse modulo sao:
 
 import decimal as dec
 from copy import deepcopy
-import sys
 
 class User:
     """
@@ -25,8 +24,6 @@ class User:
         -- cpf -> digitos do cpf do usuario.
         -- password -> Senha do usuario.
         -- age -> Idade do usuario.
-
-    Em um caso real, seria utilizado algum tipo de codificacao  para armazenar estas informacoes
     """
 
     cpflen = 11
@@ -112,7 +109,15 @@ class Money:
     qntoptions = 3
 
     def __init__(self, value):
-        self.value = dec.Decimal(value).quantize(dec.Decimal('.01'), rounding=dec.ROUND_UP)
+        if isinstance(value, Money):
+            self._value = value.value
+        else:
+            self._value = dec.Decimal(value).quantize(dec.Decimal('.01'), rounding=dec.ROUND_FLOOR)
+
+    @property
+    def value(self):
+        return self._value
+
 
     def __str__(self):
         sign = '-' if self.value < 0.0 else ''
@@ -122,35 +127,43 @@ class Money:
         result = "{0}{1}.{2}".format(sign, whole, fract)
         return result
 
+    def __repr__(self):
+        classname = type(self).__name__
+        return "{0}({1})".format(classname, self.value)
+
     def __add__(self, other):
-        if isinstance(other, Money): other = other.value
-        return Money(self.value + other)
+        temp = Money(other)
+        return Money(self.value + temp.value)
 
     def __radd__(self, other):
-        return Money(self.value + other)
+        return self + other
 
     def __mul__(self, other):
-        if isinstance(other, Money): other = other.value
-        return Money(self.value * other)
+        temp = Money(other)
+        return Money(self.value * temp.value)
 
     def __rmul__(self, other):
-        return Money(self.value * other)
+        return self * other
 
     def __sub__(self, other):
-        if isinstance(other, Money): other = other.value
-        return Money(self.value - other)
+        temp = Money(other)
+        return Money(self.value - temp.value)
 
     def __rsub__(self, other):
-        return Money(other - self.value)
+        temp = Money(other)
+        return Money(temp.value - self.value)
 
-    #def __eq__(self, other):
-    #   return not self < other and self > other
+    def __eq__(self, other):
+        return self.value == other
 
     def __lt__(self, other):
         return self.value < other
 
     def __gt__(self, other):
         return self.value > other
+
+    def __abs__(self):
+        return abs(self.value)
 
     @staticmethod
     def commas(value):
@@ -208,7 +221,7 @@ class Money:
         assert self.value == self.value.to_integral_value(), 'Nao e possivel dar opcoes de cedulas para o valor ' + str(self.value) + '. So e possivel dar opcoes para valores inteiros.'
         result = {}
         temp = deepcopy(self.value)     # Nao tenho certeza se essa e a melhor forma de evitar alteracoes no objeto original
-        while temp != 0:
+        while temp:
             bknote = self.banknotes[pos]
             qnt = temp // dec.Decimal(bknote)
             temp -= qnt * dec.Decimal(bknote)
@@ -217,38 +230,4 @@ class Money:
         return result
 
 if __name__ == '__main__':
-    # TODO transferir testes para a classe de testes
-    # TODO testes de comutatividade, Usuario e conta
-    def testSeparate(value):
-        try:
-            print('Testando valor: ' + str(value))
-            print(value.separate(4), end='. ')
-        except AssertionError:
-            print(sys.exc_info()[1])
-        else:
-            print('Tudo certo...')
-
-    def testOptions(value):
-        try:
-            print('Testando getOptions...')
-            print('Valor testado: ' + str(value))
-            options = value.getOptions()
-            for text in options:
-                print(text)
-        except AssertionError:
-            print(sys.exc_info()[1])
-        else:
-            print('Tudo certo...')
-
-    values = [0, 1, 99, 120, 999, 3.14, -10]
-    notes = list(map(Money, values))
-    print('testando separate...')
-    #[testSeparate(note) for note in notes]
-    [testOptions(note) for note in notes]
-    print()
-
-    print('Testando iteracao nas cedulas invertidas invertido...')
-    print(list((idx, value) for idx, value in enumerate(reversed(Money.banknotes))))
-    size = len(Money.banknotes)-1
-    print(list((size-idx, value) for idx, value in enumerate(reversed(Money.banknotes))))
-    print()
+    pass
