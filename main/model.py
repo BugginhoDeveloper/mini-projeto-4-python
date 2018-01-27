@@ -24,6 +24,7 @@ class User:
         -- fullname -> Nome inteiro do usuario
         -- cpf -> digitos do cpf do usuario.
         -- password -> Senha do usuario.
+        -- age -> Idade do usuario.
 
     Em um caso real, seria utilizado algum tipo de codificacao  para armazenar estas informacoes
     """
@@ -56,7 +57,7 @@ class User:
 
     def formattedCpf(self):
         """
-            Retorna o cpf no formato NNN.NNN.NNN-NN
+            :return: cpf no formato NNN.NNN.NNN-NN
         """
         return self.cpf[:3] + '.' + self.cpf[3:6] + '.' + self.cpf[6:9] + '-' + self.cpf[9:]
 
@@ -66,7 +67,7 @@ class Account:
     acctlen = 6
 
     def __init__(self, user, agency_number, balance = 0.0):
-        if user.__class__.__name__ != 'User':
+        if not isinstance(user, User):
             raise AttributeError
         else:
             self.agency_number = agency_number
@@ -132,9 +133,24 @@ class Money:
         if isinstance(other, Money): other = other.value
         return Money(self.value * other)
 
+    def __rmul__(self, other):
+        return Money(self.value * other)
+
     def __sub__(self, other):
         if isinstance(other, Money): other = other.value
         return Money(self.value - other)
+
+    def __rsub__(self, other):
+        return Money(other - self.value)
+
+    #def __eq__(self, other):
+    #   return not self < other and self > other
+
+    def __lt__(self, other):
+        return self.value < other
+
+    def __gt__(self, other):
+        return self.value > other
 
     @staticmethod
     def commas(value):
@@ -152,31 +168,43 @@ class Money:
             result = (last + ',' + result) if result else last
         return result
 
+    # TODO simplificar e comentar essa funcao
     def getOptions(self):
         """
             Obtem as opcoes de cedulas para o valor sacado.
 
             A quantidade de opcoes e dada de acordo com o valor de Money.qntoptions
 
-        :return: result -> Lista de strings com as opcoes disponiveis
+        :return: Lista de strings com as opcoes disponiveis
         """
         result = []
-        cnt = 0
-        size = len(self.banknotes) - 1
-        for idx, bknote in enumerate(reversed(self.banknotes)):
-            if cnt == Money.qntoptions: break
-            if dec.Decimal(bknote) <= self.value:
-                notes = self.separate(size-idx)
-                text = str(cnt+1) + '. '
-                for key in notes:
-                    text += str(notes[key]) + (' cedulas de ' if notes[key] != 1 else ' cedula de ') + str(key) + ' / '
-                result.append(text)
-                cnt += 1
+        idx = self.greaterBanknote()
+        for cnt in range(Money.qntoptions):
+            notes = self.separate(idx-cnt)
+            text = str(cnt+1) + '. '
+            for key in reversed(sorted(notes)):
+                text += str(notes[key]) + (' cedulas de ' if notes[key] != 1 else ' cedula de ') + str(key) + ' / '
+            result.append(text)
         return result
 
+    def greaterBanknote(self):
+        """
+            Obtem a maior nota disponivel que e menor que o valor de self.value.
+            Auxilia a funcao getOptions a encontrar a quantidade de notas necessarias no saque.
+
+            Ex: Money(60).greaterBanknote() == 4
+                Money(4).greaterBanknote() == 1
+                Money(0).greaterBanknote() == -1
+
+        :return: Maior indice que e menor que o valor de self.value
+        """
+        for idx, bknote in enumerate(Money.banknotes):
+            if dec.Decimal(bknote) > self.value:
+                return idx-1
+        return len(Money.banknotes)-1
 
     def separate(self, pos):
-        assert self.value >= 1, 'Nao e possivel fazer saque para valores menores ou igual a 0'
+        assert self.value > 1, 'Nao e possivel fazer saque para valores menores ou igual a 1. Menor nota possui 2 reais em valor'
         assert self.value == self.value.to_integral_value(), 'Nao e possivel dar opcoes de cedulas para o valor ' + str(self.value) + '. So e possivel dar opcoes para valores inteiros.'
         result = {}
         temp = deepcopy(self.value)     # Nao tenho certeza se essa e a melhor forma de evitar alteracoes no objeto original
@@ -189,7 +217,8 @@ class Money:
         return result
 
 if __name__ == '__main__':
-
+    # TODO transferir testes para a classe de testes
+    # TODO testes de comutatividade, Usuario e conta
     def testSeparate(value):
         try:
             print('Testando valor: ' + str(value))
@@ -199,9 +228,23 @@ if __name__ == '__main__':
         else:
             print('Tudo certo...')
 
+    def testOptions(value):
+        try:
+            print('Testando getOptions...')
+            print('Valor testado: ' + str(value))
+            options = value.getOptions()
+            for text in options:
+                print(text)
+        except AssertionError:
+            print(sys.exc_info()[1])
+        else:
+            print('Tudo certo...')
+
+    values = [0, 1, 99, 120, 999, 3.14, -10]
+    notes = list(map(Money, values))
     print('testando separate...')
-    for value in (99, 999, 3.14, -10):
-        testSeparate(Money(value))
+    #[testSeparate(note) for note in notes]
+    [testOptions(note) for note in notes]
     print()
 
     print('Testando iteracao nas cedulas invertidas invertido...')
@@ -209,10 +252,3 @@ if __name__ == '__main__':
     size = len(Money.banknotes)-1
     print(list((size-idx, value) for idx, value in enumerate(reversed(Money.banknotes))))
     print()
-
-    print('Testando getOptions...')
-    value = Money(1000)
-    print('Valor testado: ' + str(value))
-    options = value.getOptions()
-    for text in options:
-        print(text)
